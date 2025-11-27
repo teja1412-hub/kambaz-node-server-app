@@ -1,29 +1,47 @@
+import model from "./model.js";
 import { v4 as uuidv4 } from "uuid";
+
 export default function UsersDao(db) {
-  let { users } = db;
-  const createUser = (user) => {
-    const newUser = { ...user, _id: uuidv4() };
-    users = [...users, newUser];
-    return newUser;
-  };
-  const findAllUsers = () => users;
-  const findUserById = (userId) => users.find((user) => user._id === userId);
+  const findAllUsers = () => model.find();
+
+  const findUserById = (userId) => model.findById(userId);
+
   const findUserByUsername = (username) =>
-    users.find((user) => user.username === username);
+    model.findOne({ username });
+
   const findUserByCredentials = (username, password) =>
-    users.find(
-      (user) => user.username === username && user.password === password
-    );
-  const updateUser = (userId, user) =>
-    (users = users.map((u) => (u._id === userId ? user : u)));
-  const deleteUser = (userId) =>
-    (users = users.filter((u) => u._id !== userId));
+    model.findOne({ username, password });
+
+  const findUsersByRole = (role) => model.find({ role });
+
+  const findUsersByPartialName = (partialName) => {
+    const regex = new RegExp(partialName, "i");
+    return model.find({
+      $or: [{ firstName: { $regex: regex } }, { lastName: { $regex: regex } }],
+    });
+  };
+
+  const createUser = async (user) => {
+    const newUser = { ...user, _id: uuidv4() };
+    return await model.create(newUser);
+  };
+
+  const updateUser = async (userId, userUpdates) => {
+    return await model.findByIdAndUpdate(userId, userUpdates, { new: true });
+  };
+
+  const deleteUser = async (userId) => {
+    return await model.findByIdAndDelete(userId);
+  };
+
   return {
-    createUser,
     findAllUsers,
     findUserById,
     findUserByUsername,
     findUserByCredentials,
+    findUsersByRole,
+    findUsersByPartialName,
+    createUser,
     updateUser,
     deleteUser,
   };

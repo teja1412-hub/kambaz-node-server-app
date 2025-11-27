@@ -1,4 +1,5 @@
 import express from 'express'
+import mongoose from "mongoose";
 import Hello from "./Hello.js"
 import Lab5 from "./Lab5/index.js";
 import cors from "cors";
@@ -13,11 +14,17 @@ import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
 
 
 const app = express()
+
+const CONNECTION_STRING = process.env.DATABASE_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz";
+mongoose.connect(CONNECTION_STRING);
+
 app.use(cors({
     credentials: true,
     origin: process.env.CLIENT_URL || "http://localhost:3000",
 }));
+
 app.use(express.json());
+
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
   resave: false,
