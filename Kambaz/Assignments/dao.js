@@ -18,7 +18,7 @@ export default function AssignmentsDao(db) {
   };
 
   const deleteAssignment = (assignmentId) => {
-    db.assignments = assignments.filter((a) => a._id !== assignmentId);
+    assignments = assignments.filter((a) => a._id !== assignmentId);
   };
 
   return {
