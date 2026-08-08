@@ -1,33 +1,55 @@
+import courseModel from "../Courses/model.js";
 import { v4 as uuidv4 } from "uuid";
 export default function ModulesDao(db) {
-  let { modules } = db;
 
-  function findModulesForCourse(courseId) {
-    const { modules } = db;
-    return modules.filter((module) => module.course === courseId);
+  const findModulesForCourse = async (courseId) =>  {
+    const course = await courseModel.findById(courseId);
+    return course ? course.modules : [];
   }
 
-  const createModule = (module) => {
-    const newModule = { ...module, _id: uuidv4()};
-    modules = [...db.modules, newModule];
+  const createModule = async (courseId, module) => {
+    const newModule = { ...module, _id: uuidv4(), lessons: [] };
+    await courseModel.updateOne(
+      { _id: courseId },
+      { $push: { modules: newModule } }
+    );
     return newModule;
   };
 
-  const updateModule = (moduleId, moduleUpdates) => {
-    const { modules } = db;
-    const module = modules.find((module) => module._id === moduleId);
+const createLesson = async (courseId, moduleId, lesson) => {
+  const course = await courseModel.findById(courseId);
+  if (!course) throw new Error("Course not found");
+
+  const module = course.modules.id(moduleId);
+  if (!module) throw new Error("Module not found");
+
+  const newLesson = { ...lesson, _id: uuidv4() };
+  module.lessons.push(newLesson);
+
+  await course.save();
+  return newLesson;
+};
+
+  const updateModule = async (courseId, moduleId, moduleUpdates) => {
+    const course = await courseModel.findById(courseId);
+    const module = course.modules.id(moduleId);
     Object.assign(module, moduleUpdates);
+    await course.save();
     return module;
   };
 
-  const deleteModule = (moduleId) => {
-    const { modules } = db;
-    db.modules = modules.filter((module) => module._id !== moduleId);
+  const deleteModule = async (courseId, moduleId) => {
+    const status = await courseModel.updateOne(
+      { _id: courseId },
+      { $pull: { modules: { _id: moduleId } } }
+    );
+    return status;
   };
 
   return {
     findModulesForCourse,
     createModule,
+    createLesson,
     updateModule,
     deleteModule,
   };

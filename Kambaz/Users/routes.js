@@ -3,78 +3,128 @@ import UsersDao from "./dao.js";
 export default function UserRoutes(app, db) {
   const dao = UsersDao(db);
 
-  const createUser = (req, res) => {
-    const user = dao.createUser(req.body);
-    res.json(user);
-  };
-
-  const deleteUser = (req, res) => {
-    const { userId } = req.params;
-    dao.deleteUser(userId);
-    res.sendStatus(204);
-  };
-
-  const findAllUsers = (req, res) => {
-    const users = dao.findAllUsers();
-    res.json(users);
-  };
-
-  const findUserById = (req, res) => {
-    const { userId } = req.params;
-    const user = dao.findUserById(userId);
-    if (user) {
+  const createUser = async (req, res) => {
+    try {
+      const user = await dao.createUser(req.body);
       res.json(user);
-    } else {
-      res.sendStatus(404);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
     }
   };
 
-  const updateUser = (req, res) => {
+  const updateUser = async (req, res) => {
     const { userId } = req.params;
     const userUpdates = req.body;
-    const status = dao.updateUser(userId, userUpdates);
-    const currentUser = dao.findUserById(userId);
-    req.session["currentUser"] = currentUser;
-    res.json(status);
-  };
+    try {
+      const updatedUser = await dao.updateUser(userId, userUpdates);
 
-  const signup = (req, res) => {
-    const user = dao.findUserByUsername(req.body.username);
-    if (user) {
-      res.status(400).json({ message: "Username already in use" });
-      return;
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const currentUser = req.session["currentUser"];
+      if (currentUser && currentUser._id === userId) {
+        req.session["currentUser"] = { ...currentUser, ...userUpdates };
+      }
+
+      res.json(updatedUser);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
     }
-    const currentUser = dao.createUser(req.body);
-    req.session["currentUser"] = currentUser;
-    res.json(currentUser);
   };
 
-  const signin = (req, res) => {
+  const deleteUser = async (req, res) => {
+    const { userId } = req.params;
+    try {
+      const deletedUser = await dao.deleteUser(userId);
+      if (!deletedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.sendStatus(204);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  };
+
+  const findAllUsers = async (req, res) => {
+    const { role, name } = req.query;
+    try {
+      let users;
+      if (role) {
+        users = await dao.findUsersByRole(role);
+      } else if (name) {
+        users = await dao.findUsersByPartialName(name);
+      } else {
+        users = await dao.findAllUsers();
+      }
+      res.json(users);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  };
+
+  const findUserById = async (req, res) => {
+    const { userId } = req.params;
+    try {
+      const user = await dao.findUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  };
+
+  const signup = async (req, res) => {
+    try {
+      const existingUser = await dao.findUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already in use" });
+      }
+
+      const currentUser = await dao.createUser(req.body);
+      req.session["currentUser"] = currentUser;
+      res.json(currentUser);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
+    }
+  };
+
+  const signin = async (req, res) => {
     const { username, password } = req.body;
-    const currentUser = dao.findUserByCredentials(username, password);
-    if (!currentUser) {
-      res.status(401).json({ message: "Invalid credentials" });
-      return;
+    try {
+      const currentUser = await dao.findUserByCredentials(username, password);
+      if (!currentUser) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      req.session["currentUser"] = currentUser;
+      res.json(currentUser);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: err.message });
     }
-    req.session["currentUser"] = currentUser;
-    res.json(currentUser);
   };
 
   const signout = (req, res) => {
     req.session.destroy((err) => {
       if (err) {
-        res.sendStatus(500);
-      } else {
-        res.sendStatus(200);
+        return res.status(500).json({ message: err.message });
       }
+      res.sendStatus(200);
     });
   };
 
   const profile = (req, res) => {
     const currentUser = req.session["currentUser"];
     if (!currentUser) {
-      res.sendStatus(401);
-      return;
+      return res.sendStatus(401);
     }
     res.json(currentUser);
   };
