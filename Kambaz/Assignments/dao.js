@@ -17,6 +17,7 @@ export default function AssignmentsDao(db) {
   };
 
   const deleteAssignment = (assignmentId) => {
+    //assignments = assignments.filter((a) => a._id !== assignmentId); if you don't want to delete and just filter out
     return model.deleteOne({ _id: assignmentId });
   };
 
