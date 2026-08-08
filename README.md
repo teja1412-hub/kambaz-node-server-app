@@ -93,6 +93,28 @@ Requires a running MongoDB instance (local or Atlas) — see [Environment Variab
 | `SERVER_ENV` | Set to `production` to enable secure cookies | — |
 | `PORT` | Server port | `4000` |
 
+## Deployment
+
+Deployed as a **Web Service on Render**, with **MongoDB Atlas** as the production database.
+
+**Render setup:**
+1. Connect the GitHub repo to a new Render Web Service.
+2. Build command: `npm install` · Start command: `npm start`
+3. Set the environment variables below in Render's dashboard (Environment tab).
+
+**Render environment variables (production):**
+
+| Variable | Value |
+|---|---|
+| `DATABASE_CONNECTION_STRING` | MongoDB Atlas connection URI |
+| `SESSION_SECRET` | a secure random string |
+| `CLIENT_URL` | the deployed frontend's URL (Vercel) |
+| `SERVER_ENV` | `production` |
+
+Setting `SERVER_ENV=production` switches the session cookie config to `secure: true` and `sameSite: "none"`, which is required for the cookie to survive a cross-origin request from the Vercel-hosted frontend to this Render-hosted API.
+
+**MongoDB Atlas setup:** free-tier (M0) cluster, with network access configured to allow connections from Render (`0.0.0.0/0` for simplicity on a free-tier project, though a production system would scope this to Render's IP range).
+
 ## Project Structure
 
 ```
